@@ -27,16 +27,27 @@ import com.google.android.gms.location.*
 import android.app.NotificationManager
 import android.app.Notification
 
+import androidx.lifecycle.lifecycleScope
+import com.example.nosignalalertsystem.data.AppDatabase
+import com.example.nosignalalertsystem.data.WeakSignalEntity
+import kotlinx.coroutines.launch
+
+
 class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private lateinit var telephonyManager: TelephonyManager
 
     // Location components
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+
     private lateinit var locationRequest: LocationRequest
 
     // Telephony modern callback (API 31+)
     private var modernCallback: TelephonyCallback? = null
+    private lateinit var db: AppDatabase
+    private var lastLoggedTime = 0L
+    private val logCooldown = 60_000L // 1 minute cooldown
+
     private var lastAlertTime = 0L
     private val alertCooldown = 60_000 // 1 minute to prevent spam
 
@@ -59,6 +70,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        db = AppDatabase.getDatabase(requireContext())
+
 
         telephonyManager =
             requireContext().getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
@@ -86,6 +99,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         if (dBm <= -115) {
             tv.setTextColor(Color.RED)
             showWeakSignalAlert(dBm)  // ← NEW
+            saveWeakSignalLocation(dBm)  // Module 6 logging
         } else {
             tv.setTextColor(Color.BLACK)
         }
@@ -223,6 +237,68 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         Toast.makeText(requireContext(), "Monitoring Stopped", Toast.LENGTH_SHORT).show()
     }
+
+    private fun saveWeakSignalLocation(dbm: Int) {
+        val now = System.currentTimeMillis()
+        if (now - lastLoggedTime < logCooldown) return
+        lastLoggedTime = now
+
+        // Use lastLocation (fast) and fall back to requestLocationUpdates if null
+        try {
+            fusedLocationClient.lastLocation
+                .addOnSuccessListener { location ->
+                    if (location != null) {
+                        val log = WeakSignalEntity(
+                            timestamp = now,
+                            dbm = dbm,
+                            latitude = location.latitude,
+                            longitude = location.longitude
+                        )
+                        // Insert asynchronously using lifecycleScope
+                        lifecycleScope.launch {
+                            db.weakSignalDao().insertLog(log)
+                        }
+
+                    } else {
+                        // If lastLocation is null, request a single update
+                        // (Optional: requestLocationUpdates and remove after one callback)
+                        // We'll request a single update using requestLocationUpdates + callback
+                        if (ActivityCompat.checkSelfPermission(
+                                requireContext(),
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            fusedLocationClient.requestLocationUpdates(
+                                locationRequest,
+                                object : LocationCallback() {
+                                    override fun onLocationResult(result: LocationResult) {
+                                        val l = result.lastLocation ?: return
+                                        val log = WeakSignalEntity(
+                                            timestamp = now,
+                                            dbm = dbm,
+                                            latitude = l.latitude,
+                                            longitude = l.longitude
+                                        )
+                                        lifecycleScope.launch {
+                                            db.weakSignalDao().insertLog(log)
+                                        }
+                                        // remove this temporary callback
+                                        fusedLocationClient.removeLocationUpdates(this)
+                                    }
+                                },
+                                Looper.getMainLooper()
+                            )
+                        }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    e.printStackTrace()
+                }
+        } catch (se: SecurityException) {
+            se.printStackTrace()
+        }
+    }
+
 
     // -------------------- CLEAN UP --------------------
     override fun onDestroyView() {

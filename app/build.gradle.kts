@@ -48,6 +48,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+    implementation("androidx.recyclerview:recyclerview:1.3.1")
+
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
