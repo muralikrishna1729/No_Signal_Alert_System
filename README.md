@@ -1,254 +1,179 @@
-📡 No Signal Alert System – Android App
-Real-time network signal monitoring, GPS-based weak-signal logging, heatmap visualization & alerts
-📝 Project Overview
+# 🛰️ No Signal Alert System – Android App  
+A smart Android application that **monitors mobile signal strength**, **tracks GPS location**, and **logs weak signal spots** into a local database.  
+It also provides **foreground monitoring**, **real-time alerts**, **logs view**, **CSV export**, and **map heatmap visualization** using Google Maps.
 
-No Signal Alert System is an Android application designed to continuously monitor mobile network signal strength and GPS location in real time.
-When the signal becomes critically weak (default threshold: –115 dBm), the app:
+---
 
-✔ Shows an alert notification
-✔ Saves the weak-signal location to a Room database
-✔ Displays the logs in a dedicated screen
-✔ Allows exporting all logs to CSV
-✔ Plots a Heatmap on Google Maps to visualize poor network zones
+## 📌 Features
 
-This project is built for academic evaluation and real-world usage in rural/low-coverage locations.
+### 📶 Real-time Signal Monitoring
+- Monitors cellular signal strength (dBm value)
+- Supports Android **API 26–35**
+- Uses:
+  - **TelephonyCallback** (Android 12+)
+  - **PhoneStateListener** (Android 8–11)
 
-🚀 Features
-📶 Real-Time Signal Monitoring
+### 📍 GPS Tracking
+- Live GPS updates via **Fused Location Provider**
+- High accuracy mode
 
-Reads device cellular signal strength continuously
+### ⚠️ Weak Signal Alerts
+- Notification when the signal drops below **-115 dBm**
+- Cooldown system to prevent spam alerts
 
-Works on API level 26+ (Android 8)
+### 🧭 Foreground Monitoring Service
+- Runs monitoring safely in background
+- Modern and battery-optimized
+- Notification channel supported
 
-Backward-compatible using reflection (no deprecated crashes)
+### 🗺️ Heatmap Visualization
+- Google Maps integration
+- Heatmap of weak signal locations
+- Color-coded visualization (green → yellow → red)
 
-📍 GPS Tracking
+### 📊 Logs System
+- Stores weak signal data using **Room DB**
+- View logs in a RecyclerView
+- Delete individual logs / delete all
+- Export logs as **CSV**
 
-High-accuracy location updates every few seconds
+---
 
-Auto-updates UI with the latest latitude/longitude
+## 🏗️ Project Structure
 
-⚠ Weak Signal Detection
-
-Detects weak signals below –115 dBm
-
-Plays alert notification (sound/vibration enabled)
-
-Only alerts once per minute to prevent spam
-
-🗂 Weak Signal Logging
-
-Saves timestamp, dBm, latitude, longitude
-
-Stored in Room database (signal_db)
-
-Automatic cooldown prevents overlogging
-
-📄 Logs Screen
-
-View all logs in RecyclerView
-
-Delete single log / delete all logs
-
-Export logs to CSV (easy for analysis in Excel)
-
-🗺 Heatmap Visualization
-
-Displays all weak-signal points on Google Maps
-
-Uses Google Maps Utils HeatmapProvider
-
-Helps identify signal blackspots
-
-🔀 Bottom Navigation
-Home	Logs	Heatmap
-Signal + GPS UI	Full log history	Google Maps visualization
-🛠 Tech Stack
-Languages
-
-Kotlin
-
-Frameworks & APIs
-
-Android Jetpack
-
-Room Database
-
-Google Play Services (Location, Maps)
-
-Google Maps Utils (Heatmap)
-
-Coroutines + LifecycleScope
-
-Architecture
-Fragments (UI Layer)
+app/
+├── data/
+│ ├── WeakSignalEntity.kt
+│ ├── WeakSignalDao.kt
+│ ├── AppDatabase.kt
 │
-├── HomeFragment     → Signal & GPS monitoring
-├── LogsFragment     → RecyclerView + DB + CSV
-└── MapFragment      → Heatmap visualization
+├── service/
+│ └── SignalForegroundService.kt
 │
-Data Layer
+├── ui/
+│ ├── home/
+│ │ └── HomeFragment.kt
+│ ├── logs/
+│ │ ├── LogsFragment.kt
+│ │ ├── LogsAdapter.kt
+│ ├── map/
+│ └── MapFragment.kt
 │
-├── Room Database
-│   ├── WeakSignalEntity
-│   ├── WeakSignalDao
-│   └── AppDatabase
+├── utils/
+│ └── SignalStrengthCallback.kt
 │
-Services
-│
-└── SignalForegroundService → Runs monitoring in background
-
-📸 Screenshots (Add After Running App)
-
-Create a screenshots/ folder in your repo and add images:
-
-📁 screenshots/
-   ├── home.png
-   ├── logs.png
-   ├── csv_export.png
-   ├── heatmap.png
-   └── notification.png
+└── MainActivity.kt
 
 
-Then link them here:
 
-📌 Home Screen
+---
 
-Real-time signal strength + location
+## 🛠️ Tech Stack
 
+| Layer | Technology |
+|------|------------|
+| UI | XML + Fragments + RecyclerView |
+| Navigation | Bottom Navigation + NavHostFragment |
+| Background | Foreground Service |
+| Database | Room Persistence Library |
+| GPS | FusedLocationProviderClient |
+| Telephony | SignalStrength APIs |
+| Maps | Google Maps + Heatmap Overlay |
+| Export | CSV through FileOutputStream |
 
-📌 Logs Screen
+---
 
-List of all weak-signal events
+## 🚀 How to Run
 
-
-📌 CSV Export
-
-CSV file created in /storage/emulated/0/Android/data/.../files/
-
-
-📌 Heatmap Visualization
-
-Weak-signal clusters shown on Google Maps
-
-
-📌 Notification
-
-Weak-signal alert in status bar
-
-
-📦 Installation & Setup
-1. Clone the Repo
-git clone https://github.com/YOUR_USERNAME/NoSignalAlertSystem.git
+### 1️⃣ Clone this repository
+```sh
+git clone https://github.com/your-username/NoSignalAlertSystem.git
 cd NoSignalAlertSystem
 
-2. Open in Android Studio
+```
 
-Android Studio Ladybug / Jellyfish recommended
+2️⃣ Open in Android Studio
 
-File → Open → Select project folder
+Android Studio Hedgehog / Jellyfish recommended
 
-3. Add Google Maps API Key
+Let Gradle sync
 
-Open:
+3️⃣ Add Google Maps API Key
 
-app/src/main/AndroidManifest.xml
+Create file: 
+```sh
+app/src/main/res/values/google_maps_api.xml
+```
+Paste : 
+```sh
+<string name="google_maps_key">YOUR_API_KEY_HERE</string>
+```
 
-Add inside <application> block:
+4️⃣ Give Permissions on Device
 
-<meta-data
-    android:name="com.google.android.geo.API_KEY"
-    android:value="YOUR_API_KEY_HERE" />
+The app will automatically request:
 
-4. Install Dependencies
+READ_PHONE_STATE
 
-Android Studio → Sync Project with Gradle Files
+ACCESS_FINE_LOCATION
 
-5. Run App on Real Device
+ACCESS_COARSE_LOCATION
 
-Signal APIs do not work on emulators.
+POST_NOTIFICATIONS (Android 13+)
 
-Use a real Android phone:
+5️⃣ Run on Physical Device
 
-Enable Developer Mode
-
-USB Debugging
-
-Connect via USB / WiFi
-
-📤 Exporting CSV
-
-Exports file to:
-
-Android/data/com.example.nosignalalertsystem/files/weak_signal_logs.csv
+⚠️ Telephony APIs do not work on emulator.
 
 
-Open via:
 
-Files app → Android/data → select your app → files
+📤 CSV Export Format
+```sh
+timestamp,dbm,latitude,longitude
+1735739302323,-118,17.3850,78.4867
+1735739319231,-120,17.3844,78.4859
+...
+```
 
-Or connect to PC
+### 📶  Heatmap Implementation
+- Uses Google Maps Utility Library
+- Converts DB logs into LatLng list
+- Generates heat intensity overlay
 
-🧪 Testing Checklist for Review
+### 🗑️ Delete Logs
+Features:
+   - Swipe-to-delete (RecyclerView)
+   - Delete All button
+   - Live UI updates with Flow / LiveData
+     
+### 📚 Future Enhancements
+   - Cloud sync (Firebase)
+   - Offline map caching
+   - Signal graph view
+   - Battery saver algorithm
+   - Auto SMS alerts when no signal
 
-Before submitting for academic review, test the following:
 
-Home Screen
+📄 License
 
- Signal updates in real time
+MIT License – free to use & modify.
 
- Location updates
+---
+```sh
+If you want, I can also generate:
 
- Start/Stop Monitoring works
+✅ `LICENSE`  
+✅ `.gitignore`  
+✅ Shields.io badges section  
+✅ App banner image (ASCII or PNG)  
+Just tell me!
 
- Notification appears for weak signal
+```
 
-Logs Screen
 
- Logs are saved in DB
 
- Logs display correctly
 
- Single log delete
 
- Delete all logs
 
- Export CSV works
 
-Heatmap
 
- Loads Google Map
-
- Heatmap tiles appear
-
- Shows weak-signal clusters
-
-Service
-
- Runs in background
-
- Foreground notification visible
-
-📘 Academic Explanation (Short Version)
-
-This app continuously monitors cellular signal strength using Android’s PhoneStateListener.
-When the signal drops below a critical threshold, it logs the GPS coordinates using Google Play Services FusedLocationProvider.
-
-Each weak signal event is stored in a Room Database.
-Users can view logs, export them to CSV, and visualize frequency clusters using Google Maps Heatmap API.
-
-📚 Future Enhancements
-
-User-customizable signal threshold
-
-Upload logs to cloud (Firebase)
-
-Offline map caching
-
-Battery usage optimization
-
-Carrier-wise analysis (e.g., Airtel/Jio/VI)
-
-© License
-
-MIT License (recommended for academic/public projects)
