@@ -47,7 +47,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             val points = logs.map { LatLng(it.latitude, it.longitude) }
             val provider = HeatmapTileProvider.Builder().data(points).build()
             googleMap.addTileOverlay(TileOverlayOptions().tileProvider(provider))
-
             googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(points.first(), 13f))
         }
     }

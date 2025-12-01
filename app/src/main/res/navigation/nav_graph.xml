@@ -18,5 +18,4 @@
         android:id="@+id/mapFragment"
         android:name="com.example.nosignalalertsystem.ui.map.MapFragment"
         android:label="Map" />
-
 </navigation>
