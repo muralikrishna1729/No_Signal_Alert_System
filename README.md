@@ -40,7 +40,7 @@ It also provides **foreground monitoring**, **real-time alerts**, **logs view**,
 ---
 
 ## 🏗️ Project Structure
-
+```sh
 app/
 ├── data/
 │ ├── WeakSignalEntity.kt
@@ -64,7 +64,7 @@ app/
 │
 └── MainActivity.kt
 
-
+```
 
 ---
 
@@ -112,7 +112,7 @@ Paste :
 4️⃣ Give Permissions on Device
 
 The app will automatically request:
-
+```sh
 READ_PHONE_STATE
 
 ACCESS_FINE_LOCATION
@@ -120,12 +120,12 @@ ACCESS_FINE_LOCATION
 ACCESS_COARSE_LOCATION
 
 POST_NOTIFICATIONS (Android 13+)
-
+```
 5️⃣ Run on Physical Device
 
 ⚠️ Telephony APIs do not work on emulator.
 
-
+---
 
 📤 CSV Export Format
 ```sh
@@ -153,12 +153,11 @@ Features:
    - Battery saver algorithm
    - Auto SMS alerts when no signal
 
+---
 
-📄 License
+### 📄 License
 
 MIT License – free to use & modify.
-
----
 ```sh
 If you want, I can also generate:
 
