@@ -10,17 +10,13 @@
         android:label="Home" />
 
     <fragment
-        android:id="@+id/contactsFragment"
-        android:name="com.example.nosignalalertsystem.ui.contacts.ContactsFragment"
-        android:label="Contacts" />
-
-    <fragment
         android:id="@+id/logsFragment"
         android:name="com.example.nosignalalertsystem.ui.logs.LogsFragment"
         android:label="Logs" />
 
     <fragment
-        android:id="@+id/settingsFragment"
-        android:name="com.example.nosignalalertsystem.ui.settings.SettingsFragment"
-        android:label="Settings" />
+        android:id="@+id/mapFragment"
+        android:name="com.example.nosignalalertsystem.ui.map.MapFragment"
+        android:label="Map" />
+
 </navigation>

@@ -1,20 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:id="@+id/homeFragment"
-        android:title="Home"
-        android:icon="@drawable/ic_home" />
-    <item
-        android:id="@+id/contactsFragment"
-        android:title="Contacts"
-        android:icon="@drawable/ic_contacts" />
-    <item
-        android:id="@+id/logsFragment"
-        android:title="Logs"
-        android:icon="@drawable/ic_logs" />
-    <item
-        android:id="@+id/settingsFragment"
-        android:title="Settings"
-        android:icon="@drawable/ic_settings" />
+    <item android:id="@+id/homeFragment" android:icon="@drawable/ic_home" android:title="Home"/>
+    <item android:id="@+id/logsFragment" android:icon="@drawable/ic_list" android:title="Logs"/>
+    <item android:id="@+id/mapFragment" android:icon="@drawable/ic_map" android:title="Map"/>
 </menu>
+
 

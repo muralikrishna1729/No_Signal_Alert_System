@@ -52,16 +52,20 @@ dependencies {
 
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.maps.android:maps-utils-ktx:3.4.0")
+
 
     // Room
     implementation("androidx.room:room-runtime:2.6.0")
     kapt("androidx.room:room-compiler:2.6.0")
 
-    // Kotlin Coroutines
+    // Coroutines & lifecycle
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
-
-    // Lifecycle for lifecycleScope
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+
+    // RecyclerView
+    implementation("androidx.recyclerview:recyclerview:1.3.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
