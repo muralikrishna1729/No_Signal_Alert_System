@@ -112,26 +112,45 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     // MONITORING CONTROL
     // ----------------------------------------------------------------
     private fun startMonitoring() {
-        if (!hasPermissions()) {
+
+        // Check permissions properly
+        val fine = Manifest.permission.ACCESS_FINE_LOCATION
+        val coarse = Manifest.permission.ACCESS_COARSE_LOCATION
+        val phone = Manifest.permission.READ_PHONE_STATE
+
+        if (ContextCompat.checkSelfPermission(requireContext(), phone) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(requireContext(), fine) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(requireContext(), coarse) != PackageManager.PERMISSION_GRANTED
+        ) {
             requestPermissions()
             return
         }
 
-        // Start Foreground Service
+        // Start foreground service
         val intent = Intent(requireContext(), SignalForegroundService::class.java)
         ContextCompat.startForegroundService(requireContext(), intent)
 
-        // Signal listener
+        // --- Signal monitoring ---
         telephonyManager.listen(
             signalListener,
             PhoneStateListener.LISTEN_SIGNAL_STRENGTHS
         )
 
-        // Location listener
-        fusedClient.requestLocationUpdates(locationRequest, gpsCallback, Looper.getMainLooper())
+        // --- Location monitoring ---
+        try {
+            fusedClient.requestLocationUpdates(
+                locationRequest,
+                gpsCallback,
+                Looper.getMainLooper()
+            )
+        } catch (se: SecurityException) {
+            se.printStackTrace()
+            Toast.makeText(requireContext(), "Location permission denied!", Toast.LENGTH_SHORT).show()
+        }
 
         Toast.makeText(requireContext(), "Monitoring Started", Toast.LENGTH_SHORT).show()
     }
+
 
     private fun stopMonitoring() {
         telephonyManager.listen(null, PhoneStateListener.LISTEN_NONE)
