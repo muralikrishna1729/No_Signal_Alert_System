@@ -1,5 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+
 <resources>
     <string name="app_name">No Signal Alert System</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="header_title">No Signal Alert System</string>
+
+    <string name="signal_dbm_format">Signal: %d dBm</string>
+    <string name="quality_format">Quality: %s</string>
+    <string name="network_format">Network: %s</string>
+    <string name="signal_status_format">Signal Strength: %d dBm</string>
+    <string name="location_format">Lat: %.6f, Lon: %.6f</string>
+    <string name="location_default">Location: --, --</string>
+
+    <string name="quality_excellent">Excellent</string>
+    <string name="quality_good">Good</string>
+    <string name="quality_fair">Fair</string>
+    <string name="quality_weak">Weak</string>
+    <string name="quality_dead_zone">Dead Zone</string>
+
+    <string name="network_5g">5G</string>
+    <string name="network_4g">4G LTE</string>
+    <string name="network_3g">3G</string>
+    <string name="network_2g">2G</string>
+    <string name="network_unknown">Unknown</string>
+
+    <string name="status_airplane_mode">Airplane Mode Active</string>
+    <string name="status_no_service">No Service</string>
+    <string name="monitoring_started">Monitoring Started</string>
+    <string name="monitoring_stopped">Monitoring Stopped</string>
+    <string name="permission_denied_message">Location and phone state permissions are required.</string>
+    <string name="button_start_monitoring">Start Monitoring</string>
+    <string name="button_stop_monitoring">Stop Monitoring</string>
+
+    <string name="label_lat">Latitude:</string>
+    <string name="label_lon">Longitude:</string>
+    <string name="label_altitude">Altitude:</string>
+    <string name="label_accuracy">Accuracy:</string>
+    <string name="label_speed">Speed:</string>
+    <string name="label_address">Address:</string>
+    <string name="label_status">Status:</string>
+    <string name="label_sensor">Sensor:</string>
+
+    <string name="switch_location_updates">Location Updates</string>
+    <string name="switch_gps_mode">High Accuracy GPS</string>
+
+    <string name="status_off">Off</string>
+    <string name="status_tracking">Tracking</string>
+    <string name="value_na">N/A</string>
+    <string name="address_na">Address Unknown</string>
+    <string name="address_service_unavailable">Geocoding Service Unavailable</string>
+
+    <string name="sensor_gps">GPS</string>
+    <string name="sensor_battery_saver">Battery Saver (Network)</string>
+    <string name="sensor_network">Network</string>
+    <string name="sensor_unknown">Unknown Provider</string>
+
+
+    <string name="hello_blank_fragment">Emergency Contacts Management</string>
+    <string name="contacts_header">Emergency Contacts 🚨</string>
+    <string name="contacts_instruction">Add contacts (Name and Phone Number) who will receive SMS alerts when a dead zone is detected.</string>
+    <string name="contact_name_hint">Contact Name (e.g., Jane Doe)</string>
+    <string name="contact_phone_hint">Phone Number (10 digits)</string>
+    <string name="button_add_contact">Add Contact</string>
+    <string name="error_invalid_input">Please enter a valid name and 10-digit phone number.</string>
+    <string name="toast_contact_added">Contact added successfully.</string>
 </resources>

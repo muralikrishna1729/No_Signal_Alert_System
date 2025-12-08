@@ -1,13 +1,16 @@
 package com.example.nosignalalertsystem.ui.home
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.telephony.PhoneStateListener
+import android.telephony.ServiceState
 import android.telephony.SignalStrength
 import android.telephony.TelephonyManager
 import android.view.View
@@ -15,8 +18,8 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.nosignalalertsystem.R
 import com.example.nosignalalertsystem.data.AppDatabase
@@ -28,203 +31,228 @@ import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
 
+    private val viewModel: HomeViewModel by viewModels()
+
     private lateinit var telephonyManager: TelephonyManager
-    private lateinit var fusedClient: FusedLocationProviderClient
+    private lateinit var fusedLocation: FusedLocationProviderClient
     private lateinit var locationRequest: LocationRequest
     private lateinit var db: AppDatabase
 
-    private var lastLocationLat = 0.0
-    private var lastLocationLon = 0.0
-    private var lastLoggedTime = 0L
-    private val logCooldown = 60_000L // log once per minute
-    private var lastAlertTime = 0L
-    private val alertCooldown = 60_000L // alert once per minute
+    private lateinit var tvDbm: TextView
+    private lateinit var tvQuality: TextView
+    private lateinit var tvNetwork: TextView
+    private lateinit var tvLocation: TextView
+    private lateinit var tvSignal: TextView
 
-    private val PERMISSIONS = arrayOf(
+    private var lastLat = 0.0
+    private var lastLon = 0.0
+    private var isAirplaneMode = false
+    private var isLocationUpdatesRequested = false
+
+    private val permissions = arrayOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.READ_PHONE_STATE
     )
 
-    // --------------------- PHONE SIGNAL LISTENER ---------------------
-    private val signalListener = object : PhoneStateListener() {
-        override fun onSignalStrengthsChanged(signalStrength: SignalStrength?) {
-            val dbm = SignalStrengthCallback.getDbm(signalStrength)
-            updateSignalUI(dbm)
-            handleWeakSignal(dbm)
-        }
+    companion object {
+        private const val PERMISSION_REQUEST = 900
     }
 
-    // --------------------- LOCATION CALLBACK -------------------------
     private val gpsCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             val loc = result.lastLocation ?: return
-            lastLocationLat = loc.latitude
-            lastLocationLon = loc.longitude
-            updateLocationUI(loc.latitude, loc.longitude)
+            lastLat = loc.latitude
+            lastLon = loc.longitude
+
+            tvLocation.text = "Lat: $lastLat\nLon: $lastLon"
         }
     }
 
+    // -------------------------------------------------------------
+    // SIGNAL LISTENER
+    // -------------------------------------------------------------
+    private val signalListener = object : PhoneStateListener() {
+
+        override fun onSignalStrengthsChanged(strength: SignalStrength?) {
+            super.onSignalStrengthsChanged(strength)
+            if (!isAdded || strength == null) return
+
+            val dbm = SignalStrengthCallback.getDbm(strength)
+            val quality = getQuality(dbm)
+            val type = getNetworkType()
+
+            tvDbm.text = "Signal: $dbm dBm"
+            tvQuality.text = "Quality: $quality"
+            tvNetwork.text = "Network: $type"
+
+            updateSignalStatus(dbm)
+            logWeakSignal(dbm)
+        }
+
+        override fun onServiceStateChanged(serviceState: ServiceState?) {
+            super.onServiceStateChanged(serviceState)
+            if (!isAdded) return
+
+            isAirplaneMode = serviceState?.state == ServiceState.STATE_POWER_OFF
+            val isOutOfService = serviceState?.state == ServiceState.STATE_OUT_OF_SERVICE
+
+            when {
+                isAirplaneMode -> {
+                    tvSignal.text = "Airplane Mode"
+                    tvSignal.setTextColor(Color.BLUE)
+                }
+                isOutOfService -> {
+                    tvSignal.text = "No Service"
+                    tvSignal.setTextColor(Color.RED)
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------
+    // ON VIEW CREATED
+    // -------------------------------------------------------------
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        db = AppDatabase.getDatabase(requireContext())
-        fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
+        tvDbm = view.findViewById(R.id.signalDbm)
+        tvQuality = view.findViewById(R.id.signalQuality)
+        tvNetwork = view.findViewById(R.id.networkType)
+        tvLocation = view.findViewById(R.id.tvLocation)
+        tvSignal = view.findViewById(R.id.tvSignal)
+
         telephonyManager = requireContext().getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        fusedLocation = LocationServices.getFusedLocationProviderClient(requireContext())
+        db = AppDatabase.getDatabase(requireContext())
 
-        setupLocationRequest()
+        createLocationRequest()
 
-        view.findViewById<Button>(R.id.btnStartService).setOnClickListener {
-            startMonitoring()
+        view.findViewById<Button>(R.id.btnStartService).setOnClickListener { startMonitoring() }
+        view.findViewById<Button>(R.id.btnStopService).setOnClickListener { stopMonitoring() }
+
+        // Register broadcast receiver
+        viewModel.registerReceiver(requireContext())
+
+        lifecycleScope.launchWhenStarted {
+            viewModel.signalFlow.collect {
+                tvDbm.text = "Signal: ${it.dbm} dBm"
+                tvQuality.text = "Quality: ${it.quality}"
+                tvNetwork.text = "Network: ${it.networkType}"
+            }
         }
 
-        view.findViewById<Button>(R.id.btnStopService).setOnClickListener {
-            stopMonitoring()
-        }
-    }
-
-    // --------------------- SIGNAL UI ---------------------
-    private fun updateSignalUI(dbm: Int) {
-        val tv = view?.findViewById<TextView>(R.id.tvSignal) ?: return
-        tv.text = "Signal Strength: $dbm dBm"
-        tv.setTextColor(if (dbm <= -115) Color.RED else Color.BLACK)
-    }
-
-    // --------------------- LOCATION UI ---------------------
-    private fun updateLocationUI(lat: Double, lon: Double) {
-        val tv = view?.findViewById<TextView>(R.id.tvLocation) ?: return
-        tv.text = "Location: $lat, $lon"
-    }
-
-    // ----------------------------------------------------------------
-    // PERMISSIONS
-    // ----------------------------------------------------------------
-    private fun hasPermissions(): Boolean {
-        return PERMISSIONS.all {
-            ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
+        lifecycleScope.launchWhenStarted {
+            viewModel.locationFlow.collect {
+                tvLocation.text = "Lat: ${it.latitude}\nLon: ${it.longitude}"
+            }
         }
     }
 
-    private fun requestPermissions() {
-        ActivityCompat.requestPermissions(requireActivity(), PERMISSIONS, 101)
+    // -------------------------------------------------------------
+    // SIGNAL QUALITY
+    // -------------------------------------------------------------
+    private fun getQuality(dbm: Int): String = when {
+        dbm >= -85 -> "Excellent"
+        dbm >= -95 -> "Good"
+        dbm >= -105 -> "Fair"
+        dbm >= -115 -> "Weak"
+        else -> "Dead Zone"
     }
 
-    // ----------------------------------------------------------------
-    // MONITORING CONTROL
-    // ----------------------------------------------------------------
+    private fun getNetworkType(): String {
+        return when (telephonyManager.dataNetworkType) {
+            TelephonyManager.NETWORK_TYPE_NR -> "5G"
+            TelephonyManager.NETWORK_TYPE_LTE -> "4G"
+            TelephonyManager.NETWORK_TYPE_HSPA,
+            TelephonyManager.NETWORK_TYPE_UMTS -> "3G"
+            TelephonyManager.NETWORK_TYPE_EDGE,
+            TelephonyManager.NETWORK_TYPE_GPRS -> "2G"
+            else -> "Unknown"
+        }
+    }
+
+    private fun updateSignalStatus(dbm: Int) {
+        tvSignal.text = "Signal: $dbm dBm"
+        tvSignal.setTextColor(if (dbm <= -115) Color.RED else Color.BLACK)
+    }
+
+    // -------------------------------------------------------------
+    // START / STOP MONITORING
+    // -------------------------------------------------------------
+    @SuppressLint("MissingPermission")
     private fun startMonitoring() {
-
-        // Check permissions properly
-        val fine = Manifest.permission.ACCESS_FINE_LOCATION
-        val coarse = Manifest.permission.ACCESS_COARSE_LOCATION
-        val phone = Manifest.permission.READ_PHONE_STATE
-
-        if (ContextCompat.checkSelfPermission(requireContext(), phone) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(requireContext(), fine) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(requireContext(), coarse) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions()
+        if (!hasPermissions()) {
+            requestPermissions(permissions, PERMISSION_REQUEST)
             return
         }
 
-        // Start foreground service
-        val intent = Intent(requireContext(), SignalForegroundService::class.java)
-        ContextCompat.startForegroundService(requireContext(), intent)
+        requireContext().startForegroundService(Intent(requireContext(), SignalForegroundService::class.java))
 
-        // --- Signal monitoring ---
         telephonyManager.listen(
             signalListener,
-            PhoneStateListener.LISTEN_SIGNAL_STRENGTHS
+            PhoneStateListener.LISTEN_SIGNAL_STRENGTHS or PhoneStateListener.LISTEN_SERVICE_STATE
         )
 
-        // --- Location monitoring ---
-        try {
-            fusedClient.requestLocationUpdates(
-                locationRequest,
-                gpsCallback,
-                Looper.getMainLooper()
-            )
-        } catch (se: SecurityException) {
-            se.printStackTrace()
-            Toast.makeText(requireContext(), "Location permission denied!", Toast.LENGTH_SHORT).show()
-        }
+        fusedLocation.requestLocationUpdates(locationRequest, gpsCallback, Looper.getMainLooper())
+        isLocationUpdatesRequested = true
 
         Toast.makeText(requireContext(), "Monitoring Started", Toast.LENGTH_SHORT).show()
     }
 
-
     private fun stopMonitoring() {
         telephonyManager.listen(null, PhoneStateListener.LISTEN_NONE)
-        fusedClient.removeLocationUpdates(gpsCallback)
 
-        requireContext().stopService(
-            Intent(requireContext(), SignalForegroundService::class.java)
-        )
+        if (isLocationUpdatesRequested) {
+            fusedLocation.removeLocationUpdates(gpsCallback)
+            isLocationUpdatesRequested = false
+        }
+
+        requireContext().stopService(Intent(requireContext(), SignalForegroundService::class.java))
 
         Toast.makeText(requireContext(), "Monitoring Stopped", Toast.LENGTH_SHORT).show()
     }
 
-    // --------------------- LOCATION REQUEST ---------------------
-    private fun setupLocationRequest() {
-        locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY, 5000
-        ).setMinUpdateDistanceMeters(5f).build()
+    private fun hasPermissions() = permissions.all {
+        ActivityCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
     }
 
-    // ----------------------------------------------------------------
-    // WEAK SIGNAL HANDLING (ALERT + DB LOGGING)
-    // ----------------------------------------------------------------
-    private fun handleWeakSignal(dbm: Int) {
+    // -------------------------------------------------------------
+    // LOCATION REQUEST
+    // -------------------------------------------------------------
+    private fun createLocationRequest() {
+        locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000)
+            .setMinUpdateIntervalMillis(1500)
+            .build()
+    }
+
+    // -------------------------------------------------------------
+    // LOG WEAK SIGNAL
+    // -------------------------------------------------------------
+    private var lastLog = 0L
+    private val logGap = 60000L
+
+    private fun logWeakSignal(dbm: Int) {
         if (dbm > -115) return
 
-        // Notification alert once per minute
         val now = System.currentTimeMillis()
-        if (now - lastAlertTime > alertCooldown) {
-            lastAlertTime = now
-            showWeakSignalNotification(dbm)
-        }
+        if (now - lastLog < logGap) return
+        lastLog = now
 
-        // DB logging once per minute
-        if (now - lastLoggedTime > logCooldown) {
-            lastLoggedTime = now
-            saveWeakSignalLocation(dbm)
-        }
-    }
-
-    private fun showWeakSignalNotification(dbm: Int) {
-        val notif = androidx.core.app.NotificationCompat.Builder(
-            requireContext(),
-            SignalForegroundService.ALERT_CHANNEL_ID
-        )
-            .setSmallIcon(R.drawable.ic_warning)
-            .setContentTitle("Weak Signal Detected")
-            .setContentText("Signal is $dbm dBm")
-            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .build()
-
-        val manager =
-            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        manager.notify(2024, notif)
-    }
-
-    // --------------------- DB LOGGING ---------------------
-    private fun saveWeakSignalLocation(dbm: Int) {
         lifecycleScope.launch {
             db.weakSignalDao().insertLog(
                 WeakSignalEntity(
-                    timestamp = System.currentTimeMillis(),
+                    timestamp = now,
                     dbm = dbm,
-                    latitude = lastLocationLat,
-                    longitude = lastLocationLon
+                    latitude = lastLat,
+                    longitude = lastLon
                 )
             )
         }
     }
 
-    // --------------------- CLEANUP ---------------------
     override fun onDestroyView() {
         super.onDestroyView()
-        telephonyManager.listen(null, PhoneStateListener.LISTEN_NONE)
-        fusedClient.removeLocationUpdates(gpsCallback)
+        viewModel.unregisterReceiver(requireContext())
     }
 }

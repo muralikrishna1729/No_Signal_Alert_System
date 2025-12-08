@@ -13,7 +13,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.nosignalalertsystem.R
 import com.example.nosignalalertsystem.data.AppDatabase
 import com.example.nosignalalertsystem.data.WeakSignalEntity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class LogsFragment : Fragment() {
@@ -22,7 +24,11 @@ class LogsFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var logsAdapter: LogsAdapter
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         return inflater.inflate(R.layout.fragment_logs, container, false)
     }
 
@@ -33,53 +39,97 @@ class LogsFragment : Fragment() {
 
         recyclerView = view.findViewById(R.id.logsRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        logsAdapter = LogsAdapter(emptyList()) { log -> deleteSingleLog(log) }
+
+        logsAdapter = LogsAdapter(emptyList()) { log ->
+            deleteSingleLog(log)
+        }
         recyclerView.adapter = logsAdapter
 
         view.findViewById<Button>(R.id.btnDeleteAll).setOnClickListener {
-            lifecycleScope.launch {
-                db.weakSignalDao().deleteAllLogs()
-                logsAdapter.updateData(emptyList())
-                Toast.makeText(requireContext(), "All logs deleted", Toast.LENGTH_SHORT).show()
-            }
+            deleteAllLogs()
         }
 
         view.findViewById<Button>(R.id.btnExportCSV).setOnClickListener {
             exportCsv()
         }
 
-        loadLogs()
+        loadLogs()  // safe loading
     }
 
+    // ---------------------------------------------------------
+    // Load logs safely (avoids UI crash)
+    // ---------------------------------------------------------
     private fun loadLogs() {
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             val logs = db.weakSignalDao().getAllLogs()
-            logsAdapter.updateData(logs)
+
+            withContext(Dispatchers.Main) {
+                logsAdapter.updateData(logs)
+            }
         }
     }
 
+    // ---------------------------------------------------------
+    // Delete a single log
+    // ---------------------------------------------------------
     private fun deleteSingleLog(log: WeakSignalEntity) {
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             db.weakSignalDao().deleteLog(log)
-            loadLogs()
+            val newList = db.weakSignalDao().getAllLogs()
+
+            withContext(Dispatchers.Main) {
+                logsAdapter.updateData(newList)
+                Toast.makeText(requireContext(), "Log deleted", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
+    // ---------------------------------------------------------
+    // Delete ALL logs
+    // ---------------------------------------------------------
+    private fun deleteAllLogs() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            db.weakSignalDao().deleteAllLogs()
+
+            withContext(Dispatchers.Main) {
+                logsAdapter.updateData(emptyList())
+                Toast.makeText(requireContext(), "All logs deleted", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    // Export CSV (fixed crash)
+    // ---------------------------------------------------------
     private fun exportCsv() {
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             val logs = db.weakSignalDao().getAllLogs()
             if (logs.isEmpty()) {
-                Toast.makeText(requireContext(), "No logs to export", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "No logs to export", Toast.LENGTH_SHORT).show()
+                }
                 return@launch
             }
-            val sb = StringBuilder()
-            sb.append("timestamp,dbm,latitude,longitude\n")
-            logs.forEach { sb.append("${it.timestamp},${it.dbm},${it.latitude},${it.longitude}\n") }
+
+            val headers = "timestamp,dbm,latitude,longitude\n"
+            val csvData = buildString {
+                append(headers)
+                logs.forEach {
+                    append("${it.timestamp},${it.dbm},${it.latitude},${it.longitude}\n")
+                }
+            }
 
             val filename = "weak_signal_logs.csv"
             val file = File(requireContext().getExternalFilesDir(null), filename)
-            file.writeText(sb.toString())
-            Toast.makeText(requireContext(), "CSV exported: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+            file.writeText(csvData)
+
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    requireContext(),
+                    "CSV exported to:\n${file.absolutePath}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 }

@@ -5,9 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [WeakSignalEntity::class], version = 1, exportSchema = false)
+// FIX: 1. Add EmergencyContact::class to entities array
+// FIX: 2. Increment version number from 1 to 2
+@Database(
+    entities = [WeakSignalEntity::class, EmergencyContact::class],
+    version = 2,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun weakSignalDao(): WeakSignalDao
+
+    // NEW: Abstract function for the new DAO
+    abstract fun emergencyContactDao(): EmergencyContactDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -18,7 +27,12 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "signal_db"
-                ).build()
+                )
+                    // NOTE: When migrating an existing app, you must add a migration strategy here:
+                    // .fallbackToDestructiveMigration() // Recommended for simple development
+                    // .addMigrations(MIGRATION_1_2) // Recommended for production
+
+                    .build()
                 INSTANCE = inst
                 inst
             }

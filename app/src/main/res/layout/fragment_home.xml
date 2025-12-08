@@ -1,62 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/home_root"
-    android:orientation="vertical"
-    android:padding="16dp"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#F3F7FF">
 
-    <TextView
-        android:id="@+id/tvAppTitle"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="No Signal Alert System"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:paddingBottom="12dp"/>
+        android:layout_height="match_parent"
+        android:padding="20dp">
 
-    <TextView
-        android:id="@+id/tvSignal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Signal Strength: -- dBm"
-        android:textSize="16sp"
-        android:paddingBottom="8dp"/>
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:gravity="center_horizontal"
+            android:layout_height="wrap_content">
 
-    <TextView
-        android:id="@+id/tvLocation"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Location: -- , --"
-        android:textSize="14sp"
-        android:paddingBottom="16dp"/>
+            <!-- HEADER TITLE -->
+            <TextView
+                android:id="@+id/tvHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Signal Alert System"
+                android:textSize="22sp"
+                android:textColor="#1A237E"
+                android:textStyle="bold"
+                android:paddingBottom="16dp"/>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            <!-- SIGNAL CARD -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/white"
+                android:padding="20dp"
+                android:elevation="6dp"
+                android:layout_marginBottom="20dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_margin="8dp"
+                android:backgroundTint="#FFFFFF"
+                android:clipToOutline="true">
 
-        <Button
-            android:id="@+id/btnStartService"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Start Monitoring" />
+                <TextView
+                    android:id="@+id/signalDbm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Signal: -- dBm"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="#000"/>
 
-        <Button
-            android:id="@+id/btnStopService"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Stop"
-            android:layout_marginStart="8dp"/>
-    </LinearLayout>
+                <TextView
+                    android:id="@+id/signalQuality"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Quality: --"
+                    android:textSize="18sp"
+                    android:layout_marginTop="6dp"/>
 
-    <TextView
-        android:id="@+id/tvInfo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Logs are recorded when signal is weak (threshold configurable)."
-        android:textSize="12sp"
-        android:paddingTop="16dp"/>
-</LinearLayout>
+                <TextView
+                    android:id="@+id/networkType"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Network Type: --"
+                    android:textSize="18sp"
+                    android:layout_marginTop="6dp"/>
+
+                <TextView
+                    android:id="@+id/tvSignal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Signal Strength:"
+                    android:textSize="16sp"
+                    android:layout_marginTop="10dp"/>
+
+                <TextView
+                    android:id="@+id/tvLocation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Location: --, --"
+                    android:textSize="16sp"
+                    android:layout_marginTop="6dp"/>
+            </LinearLayout>
+
+            <!-- BUTTONS -->
+            <Button
+                android:id="@+id/btnStartService"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Start Monitoring"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:background="#1A73E8"
+                android:layout_marginTop="10dp"
+                android:textColor="#FFF"
+                android:padding="14dp"/>
+
+            <Button
+                android:id="@+id/btnStopService"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Stop Monitoring"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:background="#E53935"
+                android:layout_marginTop="12dp"
+                android:textColor="#FFF"
+                android:padding="14dp"/>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</RelativeLayout>
