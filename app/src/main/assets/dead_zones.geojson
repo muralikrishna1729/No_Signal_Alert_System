@@ -1,0 +1,1 @@
+{"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [85.15847, 25.573142]}, "properties": {"zone": "Dead Zone", "radius": 0.005}}]}
